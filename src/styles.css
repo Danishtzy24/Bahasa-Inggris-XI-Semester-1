@@ -47,3 +47,58 @@ button,a,summary{transition:color .22s,background .22s,border-color .22s,box-sha
 .feedback-detail{margin-top:12px;border-color:#e6dbed;background:#fcf9fe}.feedback-detail>summary{font-size:9px;font-weight:500;padding:9px 12px;color:#876298;background:#fcf9fe}.feedback-detail>summary:after{display:none}.feedback-detail>summary>.icon{height:12px;width:12px;transition:rotate .3s var(--ease)}.feedback-detail[open]>summary>.icon{rotate:180deg}.feedback-detail>.explanation{margin:0;padding:14px 15px;font-size:11px}.feedback-detail>summary:hover{background:#f1e7f8}
 @media(max-width:640px){.feedback-detail>summary{font-size:9px;padding:10px 11px}.feedback-detail>.explanation{font-size:12px;padding:13px}}
 .button,.lab-controls button,.header-links a,.home-link,.collection-bottom button,.quiz-session-header button{transition:translate .28s var(--ease),scale .2s var(--ease),transform .3s var(--ease),background .22s,border-color .22s,box-shadow .3s var(--ease),color .22s}
+
+/* ===== ENGLISH v2 — badge bentuk soal, polish modern, animasi elemen ===== */
+.question-badge{font:700 7px/1 var(--heading);letter-spacing:1px;padding:5px 9px;border-radius:99px;border:1px solid transparent;white-space:nowrap}
+.badge-single{color:#7d6799;background:#efe7f7;border-color:#e1d3f0}
+.badge-multi{color:#9a6d31;background:#faf0de;border-color:#f0dfc0}
+.badge-tf{color:#4f8078;background:#e7f3f0;border-color:#cfe7e2}
+.question-card.type-multi .option input[type=checkbox]+.option-letter{border-radius:7px}
+.question-card.type-tf .question-options{grid-template-columns:repeat(2,minmax(0,1fr));max-width:420px}
+.question-card{transition:border-color .25s,box-shadow .25s,transform .25s}
+.question-card:hover{border-color:#dcc9ec;box-shadow:0 10px 28px #5d397712}
+.option{transition:background .2s,border-color .2s,box-shadow .2s,transform .18s}
+.option:hover:not(.is-correct):not(.is-wrong){border-color:#cbb4dd;background:#faf6fd;transform:translateY(-1px)}
+.question-options:disabled .option:hover{transform:none;background:#fdfafe}
+.chapter-button{transition:transform .25s var(--ease),background .25s,box-shadow .25s}
+.chapter-button:hover{transform:translateX(3px);background:#f4eef9}
+.chapter-button.active{box-shadow:0 6px 18px #6d4a8a1c}
+.button{transition:transform .2s var(--ease),box-shadow .2s,background .2s,filter .2s}
+.button:hover{transform:translateY(-1px);filter:brightness(1.04)}
+.button:active{transform:translateY(0) scale(.985)}
+.detail-block>summary{transition:background .2s,color .2s}
+.detail-block>summary:hover{background:#f4edfa;color:#8a63a3}
+.section-heading .section-number{transition:background .25s,color .25s,transform .25s}
+.lesson-section:hover .section-heading .section-number{background:#8c66a5;color:#fff8ed;transform:translateY(-2px)}
+.lesson-section .section-heading.seen h3{animation:head-arrive .5s var(--ease) both}
+@keyframes head-arrive{from{opacity:.4;transform:translateY(6px)}to{opacity:1;transform:none}}
+:focus-visible{outline:2px solid #a07ab9;outline-offset:2px}
+@media (max-width:640px){.question-options{grid-template-columns:1fr}.question-card.type-tf .question-options{max-width:none}}
+/* chip hero: ruang untuk badge kanan agar teks panjang tidak tertimpa */
+.hero-word{padding-right:58px}
+.multi-hint{display:inline-block;font-size:9px;color:#9a6d31;background:#faf7ef;border:1px dashed #e6d3ab;padding:5px 10px;border-radius:7px;margin-top:9px;letter-spacing:.2px}
+.multi-hint.tf-hint{color:#4f8078;border-color:#c9e2dd;background:#f2f9f7}
+
+/* ===== ROMBAK TOC: chip pil + panah scroll (mode horizontal ≤900px) ===== */
+#toc a>span{background:#f1eaf7;padding:2px 7px;border-radius:6px;font-weight:600;letter-spacing:.3px}
+#toc a.active>span{background:#fff;border-color:#e1d3eb}
+.toc-rail{position:relative;min-width:0}
+.toc-arrow{display:none}
+@media(max-width:900px){
+  #toc{display:flex;gap:7px;margin:0;padding:9px 34px;overflow-x:auto;scrollbar-width:none;scroll-behavior:smooth;scroll-snap-type:x proximity}
+  #toc::-webkit-scrollbar{display:none}
+  #toc a{white-space:nowrap;font-size:9.5px;padding:6px 12px 6px 7px;flex-shrink:0;align-items:center;gap:7px;background:#fffdf9;border:1px solid #e4d7ee;border-radius:99px;box-shadow:0 1px 3px #6d4a8a0d;color:#8b7699;scroll-snap-align:start;transition:background .2s,border-color .2s,translate .2s,box-shadow .2s}
+  #toc a>span{font:600 7.5px/1.5 var(--heading);background:#efe6f7;color:#9b7fb2;padding:4px 7px;border-radius:7px;min-width:24px;text-align:center}
+  #toc a.active{background:#8c66a5;border-color:#8c66a5;color:#fff9ed;box-shadow:0 4px 12px #6d4a8a30}
+  #toc a.active>span{background:#ffffff2e;color:#fff9ed}
+  @media(hover:hover){#toc a:hover{border-color:#cbb4dd;background:#f8f3fc;translate:0 -1px;box-shadow:0 4px 10px #6d4a8a14}}
+  .toc-arrow{display:grid;place-items:center;position:absolute;top:0;bottom:0;width:32px;z-index:4;border:0;cursor:pointer;font:400 22px/1 var(--heading);color:#8c66a5;background:linear-gradient(90deg,#f1eaf7 55%,#f1eaf7d9 75%,#f1eaf700);transition:color .2s,opacity .2s;padding:0}
+  .toc-arrow.next{right:0;background:linear-gradient(270deg,#f1eaf7 55%,#f1eaf7d9 75%,#f1eaf700)}
+  .toc-arrow.prev{left:0}
+  @media(hover:hover){.toc-arrow:hover{color:#68457e}}
+  .toc-arrow:disabled{opacity:0;pointer-events:none}
+}
+@media(max-width:640px){
+  #toc{gap:6px;padding:8px 30px}
+  #toc a{font-size:9px;padding:6px 10px 6px 6px}
+}

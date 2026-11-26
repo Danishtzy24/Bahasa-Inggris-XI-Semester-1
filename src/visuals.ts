@@ -78,12 +78,75 @@ export const VISUALS: Record<string, VisualModel> = {
  sample('01 · Put','Put|the tea bag|into a cup.','FIRST','Masukkan kantong teh ke cangkir.'),sample('02 · Pour','Pour|hot water|into the cup.','NEXT','Tuang air panas ke cangkir.'),sample('03 · Wait','Wait|for three minutes.','THEN','Tunggu tiga menit.'),sample('04 · Serve','Finally,|remove the tea bag|and serve the tea.','FINALLY','Angkat kantong teh, lalu sajikan.')]),
 's7-7':lab('Tujuan jelas, bahan lengkap, langkah berurutan.','steps',[
  sample('Tujuan','Goal|jelas','01 · tentukan hasil akhir'),sample('Bahan','Materials|lengkap','02 · sertakan alat dan bahan'),sample('Langkah','Steps|berurutan','03 · satu tindakan utama per langkah'),sample('Kata kerja','Use|imperatives','04 · V1: add, pour, stir, serve')]),
-'s8-1':lab('Periksa konteks sebelum memilih rumus.','steps',[
- sample('01 · Waktu','Past|present|future','Kapan tindakannya terjadi?'),sample('02 · Makna','Habit|process|result|duration','Bagaimana tindakan dipandang?'),sample('03 · Bentuk','Active|passive|question','Bagaimana bentuk kalimatnya?'),sample('04 · Cocokkan','Subject|verb form','Periksa agreement dan V1 / V2 / V3 / V-ing')]),
-'s8-2':lab('Kalimat mirip, sudut pandangnya berbeda.','now',[
- sample('Kebiasaan','She|studies|every day.','Simple Present'),sample('Sedang','She|is studying|now.','Present Continuous'),sample('Sudah','She|has finished|her work.','Present Perfect'),sample('Sebelumnya','She|had studied|before dinner.','Past Perfect')]),
-'s8-3':lab('Bandingkan pola yang sering tertukar.','sentence',[
- sample('V2','I|saw|him yesterday.','Simple Past: waktu lampau spesifik'),sample('have + V3','I|have seen|him before.','Present Perfect: pengalaman'),sample('be + V-ing','She|is writing|a report.','Continuous aktif'),sample('be + V3','The report|is written|by her.','Passive')])
+'sop-1':lab('Opini = pendapat pribadi, bukan fakta.','chat',[
+ sample('Opinion','I|think|math|is fun.','Ungkapan pribadi + alasan','Opini — boleh berbeda antar orang.'),
+ sample('Fact','Math|has|twelve|chapters.','Bisa diverifikasi','Fakta — sama untuk semua orang.'),
+ sample('Kuat','I believe|reading|builds|vocabulary.','Opini + because + alasan','Opini kuat punya alasan.')]),
+'sop-2':lab('Tiga cara meminta pendapat orang lain.','chat',[
+ sample('What do you think','What|do you|think|about it?','What do you think about…?','Apa pendapatmu tentang…?'),
+ sample('Do you think','Do|you|think|it is safe?','Do you think…?','Menurutmu, apakah…?'),
+ sample('How do you feel','How|do you|feel|about online class?','How do you feel about…?','Bagaimana perasaanmu soal…?')]),
+'sop-3':lab('Sampaikan opini dengan pola: opini + alasan.','chat',[
+ sample('In my view','In my view,|the plan|is|fair.','In my view, … because…','Menurut saya, rencana itu adil.'),
+ sample('I believe','I believe|practice|makes|perfect.','I believe + alasan','Saya percaya latihan menyempurnakan.'),
+ sample('To my mind','To my mind,|teamwork|speeds|work.','To my mind, … because…','Sebab saya, kerja sama mempercepat.')]),
+'sop-4':lab('Setuju singkat, atau setuju lalu menambah.','chat',[
+ sample('Setuju','I|agree|with|you.','I agree with you.','Saya setuju denganmu.'),
+ sample('Sama','So|do|I.','So do I.','Saya juga begitu.'),
+ sample('Persis','You|are|absolutely|right.','You’re absolutely right.','Kamu benar sekali.')]),
+'sop-5':lab('Tolak dengan sopan: apresiasi → but → alasan.','chat',[
+ sample('Apresiasi','I see|your point,|but|I disagree.','I see your point, but…','Saya paham maksudmu, tapi…'),
+ sample('Alasan','I’m afraid|I disagree|because|data is weak.','I’m afraid I disagree because…','Maaf, saya tidak setuju karena…'),
+ sample('Namun','That’s good,|however|we lack|time.','…, however + alasan','Ide bagus, namun waktunya kurang.')]),
+'sop-6':lab('Opini kuat berdiri di atas alasan.','chat',[
+ sample('Kuat','I prefer|books|because|eyes tire.','Alasan logis & spesifik','Saya pilih buku karena mata cepat lelah.'),
+ sample('Lemah','Books|are|better.|Everyone knows.','Klaim umum tanpa alasan','Hanya selera dan klaim umum.')]),
+'sop-7':lab('Ikuti peran tiap penutur dalam dialog.','chat',[
+ sample('A · opini','The trip|should|be|postponed.','A: menyatakan opini','A: sebaiknya trip ditunda.'),
+ sample('B · setuju sebagian','I see|your point,|but|the schedule…','B: setuju sebagian','B: setuju, tapi jadwalnya…'),
+ sample('C · ragu','Are|you|sure?|Tickets booked.','C: mengungkapkan keraguan','C: yakin? Tiket sudah dipesan.')]),
+'sop-8':lab('Respons lengkap: tanggapan → opini → alasan.','chat',[
+ sample('Tanggapan','I understand|your|concern,|but…','1 · apresiasi / penanda perbedaan','Saya paham kekhawatiranmu, tapi…'),
+ sample('Opini','I believe|we|should|delay.','2 · opini kamu','Saya percaya sebaiknya kita tunda.'),
+ sample('Alasan','Because|the team|is|short.','3 · alasan (because)','Karena tim masih kurang anggota.')]),
+'s8-1':lab('Report menggambarkan; recount menceritakan.','steps',[
+ sample('Report','The honeybee|is|a social|insect.','Menggambarkan hal umum · simple present','Lebah madu adalah serangga sosial.'),
+ sample('Recount','Last year|we|visited|the farm.','Menceritakan pengalaman · simple past','Tahun lalu kami mengunjungi peternakan.')]),
+'s8-2':lab('Kalimat pembuka: umum, faktual, tanpa opini.','steps',[
+ sample('GC tepat','The dolphin|is|a marine|mammal.','The + subject + is + kategori','Paus adalah mamalia laut.'),
+ sample('Bukan GC','I think|dolphins|are|smart.','Opini pribadi — bukan fakta umum','Bukan pembuka report.'),
+ sample('Bukan GC','Yesterday|I|saw|one.','Pengalaman pribadi — bukan fakta umum','Bukan pembuka report.')]),
+'s8-3':lab('Description menguraikan ciri, kebiasaan, habitat.','steps',[
+ sample('Fisik','It|has|a hard|shell.','Ciri fisik','Dia punya cangkang keras.'),
+ sample('Kebiasaan','It|feeds|on small|fish.','Kebiasaan makan','Dia memakan ikan kecil.'),
+ sample('Habitat','It|lives|in rain|forests.','Habitat','Dia hidup di hutan hujan.')]),
+'s8-4':lab('Bandingkan tujuan dan tense tiga teks ini.','steps',[
+ sample('Report','Describe|something|general|now.','Simple present · fakta umum','Menggambarkan hal yang umum.'),
+ sample('Recount','Retell|past|personal|events.','Simple past · pengalaman','Menceritakan pengalaman lampau.'),
+ sample('Procedure','Explain|how|to do|steps.','Imperative · langkah','Menjelaskan cara melakukan.')]),
+'s8-5':lab('Ciri bahasa report: faktual dan objektif.','sentence',[
+ sample('Generic','The animal|lives|in|forests.','Generic noun + simple present','Hewan itu hidup di hutan.'),
+ sample('Tanpa pribadi','It|feeds|on|leaves.','Tanpa I / we / my','Tanpa sudut pandang penulis.'),
+ sample('Relatif','which|lives|in|colonies.','Kata relatif & teknis','Yang hidup dalam koloni.')]),
+'s8-6':lab('Tentukan bagian tiap kalimat dengan yakin.','steps',[
+ sample('Kalimat 1','The tarsier|is|a small|primate.','→ General classification','Klasifikasi umum.'),
+ sample('Kalimat 2','It|hunts|insects|at night.','→ Description','Uraian ciri & kebiasaan.'),
+ sample('Didukung','The tarsier|is|nocturnal.','✓ Didukung teks','Pernyataan sesuai isi teks.')]),
+'s8-7':lab('Tiga langkah mengubah teks menjadi report.','steps',[
+ sample('Sebelum','Yesterday|I|saw|a bird.','Pengalaman + opini (bukan report)','Kemarin aku melihat burung.'),
+ sample('Sesudah','The kingfisher|is|a bright|bird.','Simple present + fakta','Raja-udang adalah burung warna cerah.')]),
+'s8-8':lab('Pola soal report di ulangan.','steps',[
+ sample('PG','Find|the general|classification.','Pilih kalimat pembuka','Temukan kalimat klasifikasi umum.'),
+ sample('PGK','Select|all|supported|statements.','Pilih semua yang didukung teks','Centang semua yang sesuai teks.'),
+ sample('B/S','Judge|the|paragraph|part.','Benar atau salah','Tentukan bagian paragraf.')]),
+'s10-1':lab('Tiga bentuk soal, empat materi.','steps',[
+ sample('PG','One|best|answer|only.','Nomor 1–16 · pilih satu','Satu jawaban paling tepat.'),
+ sample('PGK','Select|all|correct|answers.','Nomor 17–32 · pilih semua','Lebih dari satu jawaban benar.'),
+ sample('B/S','True|or|False|statements.','Nomor 33–40 · benar/salah','Tentukan kebenaran pernyataan.')]),
+'s10-2':lab('Strategi aman untuk 120 menit.','steps',[
+ sample('Baca','Read|all|questions|first.','1 · peta soal dulu','Baca sekali cepat semua soal.'),
+ sample('Yakin','Do|the|easy|ones|first.','2 · kunci poin awal','Kerjakan yang yakin dulu.'),
+ sample('Periksa','Check|your|checkboxes|again.','5 · cek ulang centangan','Pastikan semua yang benar tercentang.')]),
 };
 const TENSES: string[][] = [
 ['s2-1','Kebiasaan, fakta, atau jadwal tetap.','now','She|studies|English every day.','She|does not study|English every day.','Does she|study|English every day?','S + V1(s/es)','S + do/does + not + V1','Do/Does + S + V1?','setiap hari'],

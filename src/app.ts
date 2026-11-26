@@ -4,7 +4,7 @@ import { icon, chapterArt, CHAPTER_ICONS, FORMULAS } from './art';
 import { VISUALS, labStageHTML, visualHTML } from './visuals';
 import type { SavedState, QuizSession, Question, LessonSection } from './types';
 'use strict';
-const reduced=matchMedia('(prefers-reduced-motion: reduce)'),KEY='english-xi-course-v1';
+const reduced=matchMedia('(prefers-reduced-motion: reduce)'),KEY='english-xi-course-v2';
 const Q=new Map(COURSE.questions.map(q=>[q.id,q]));
 let current: number | 'mixed'=1,observer=null,searchTimer=null,storageOK=true,confirmPending=null;
 let saved: SavedState = {version:1,current:1,sessions:{}};
@@ -25,34 +25,55 @@ function validSession(s: QuizSession | undefined,key: string): boolean{
  if(!s||!Array.isArray(s.order)||!s.options||!s.answers||typeof s.submitted!=='boolean')return false;
  const expected=key==='mixed'?null:COURSE.chapters.find(c=>String(c.id)===key)?.questions;
  if(s.order.length!==(expected?expected.length:10)||new Set(s.order).size!==s.order.length)return false;
- for(const id of s.order){const q=Q.get(id);if(!q||(expected&&!expected.includes(id)))return false;const opts=s.options[id];if(!Array.isArray(opts)||opts.length!==4||new Set(opts).size!==4||opts.some(o=>!q.options.some(v=>v.id===o)))return false;if(s.answers[id]&&!opts.includes(s.answers[id]))return false}
+ for(const id of s.order){const q=Q.get(id);if(!q||(expected&&!expected.includes(id)))return false;const opts=s.options[id];if(!Array.isArray(opts)||opts.length!==q.options.length||new Set(opts).size!==opts.length||opts.some(o=>!q.options.some(v=>v.id===o)))return false;if(s.answers[id]&&s.answers[id].split(',').some(x=>!opts.includes(x)))return false}
  return true;
 }
 for(const key of Object.keys(saved.sessions))if(!['mixed',...COURSE.chapters.map(c=>String(c.id))].includes(key)||!validSession(saved.sessions[key],key))delete saved.sessions[key];
 function session(){return saved.sessions[sid()]||null}
-function score(s: QuizSession){let correct=0,blank=0;for(const id of s.order){if(!s.answers[id])blank++;else if(s.answers[id]===Q.get(id).correct)correct++}return{correct,blank,wrong:s.order.length-correct-blank,total:s.order.length,value:Math.round(correct/s.order.length*100)}}
+function normSet(x:string){return x.split(',').sort().join(',')}
+function isRightQ(q:Question,ans:string|undefined){if(!ans)return false;return(q.type==='multi'?normSet(ans)===normSet(q.correct):ans===q.correct)}
+function score(s: QuizSession){let correct=0,blank=0;for(const id of s.order){if(!s.answers[id])blank++;else if(isRightQ(Q.get(id),s.answers[id]))correct++}return{correct,blank,wrong:s.order.length-correct-blank,total:s.order.length,value:Math.round(correct/s.order.length*100)}}
 function randomInt(n: number): number{if(globalThis.crypto?.getRandomValues){const limit=Math.floor(4294967296/n)*n,a=new Uint32Array(1);do{crypto.getRandomValues(a)}while(a[0]>=limit);return a[0]%n}return Math.floor(Math.random()*n)}
 function shuffle<T>(items: readonly T[]): T[]{const a=[...items];for(let i=a.length-1;i>0;i--){const j=randomInt(i+1);[a[i],a[j]]=[a[j],a[i]]}return a}
 function differentOrder<T>(a: readonly T[],prior: readonly T[] | null): T[]{const out=shuffle(a);if(out.length>1&&prior&&out.join('|')===prior.join('|'))[out[0],out[1]]=[out[1],out[0]];return out}
 function mixedQuestions(previous?: QuizSession): string[]{
- // Cover all eight subject groups, including Future in the Past, in every set.
- const old=new Set(previous?.order||[]),groups=[1,2,3,4,5,6,7,9];const chosen: string[]=[];
+ // Cover all nine practice groups (bab 1–9) in every set; bab 10 (UAS) excluded.
+ const old=new Set(previous?.order||[]),groups=[1,2,3,4,5,6,7,8,9];const chosen: string[]=[];
  for(const group of groups){const pool=COURSE.questions.filter(q=>q.group===group);const fresh=pool.filter(q=>!old.has(q.id));chosen.push(shuffle(fresh.length?fresh:pool)[0].id)}
- const rest=COURSE.questions.filter(q=>!chosen.includes(q.id));const fresh=rest.filter(q=>!old.has(q.id));chosen.push(...shuffle(fresh.length>=2?fresh:rest).slice(0,2).map(q=>q.id));return chosen;
+ const rest=COURSE.questions.filter(q=>!chosen.includes(q.id));const fresh=rest.filter(q=>!old.has(q.id));chosen.push(...shuffle(fresh.length>=2?fresh:rest).slice(0,1).map(q=>q.id));return chosen;
 }
 function makeSession(key=sid()){
  const previous=saved.sessions[key];const pool=key==='mixed'?mixedQuestions(previous):COURSE.chapters.find(c=>String(c.id)===key).questions;
  const order=differentOrder(pool,previous?.order),options: Record<string,string[]>={};
  // Balance the displayed correct letter without tying correctness to that letter.
  const slots=differentOrder(order.map((_,i)=>i%4),null);
- order.forEach((id,i)=>{const q=Q.get(id);const wrong=shuffle(q.options.filter(o=>o.id!==q.correct).map(o=>o.id));wrong.splice(slots[i],0,q.correct);if(previous?.options[id]?.join('|')===wrong.join('|')){const positions=[0,1,2,3].filter(n=>n!==slots[i]);[wrong[positions[0]],wrong[positions[1]]]=[wrong[positions[1]],wrong[positions[0]]]}options[id]=wrong});
+ order.forEach((id,i)=>{const q=Q.get(id);
+  if(q.type==='multi'){const all=shuffle(q.options.map(o=>o.id));if(previous?.options[id]?.join('|')===all.join('|')){[all[0],all[1]]=[all[1],all[0]]}options[id]=all;return}
+  const correctIds=q.correct.split(',');
+  const wrong=shuffle(q.options.filter(o=>!correctIds.includes(o.id)).map(o=>o.id));
+  const slot=slots[i]%q.options.length;wrong.splice(slot,0,...correctIds);
+  if(previous?.options[id]?.join('|')===wrong.join('|')){const positions=wrong.map((_,n)=>n).filter(n=>n!==slot);if(positions.length>1){[wrong[positions[0]],wrong[positions[1]]]=[wrong[positions[1]],wrong[positions[0]]]}}
+  options[id]=wrong});
  saved.sessions[key]={order,options,answers:{},submitted:false};save();return saved.sessions[key];
 }
 function renderChapters(){
  if($('#chapter-nav').children.length===COURSE.chapters.length){for(const c of COURSE.chapters){const b=$(`#chapter-nav [data-chapter="${c.id}"]`),active=c.id===current;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));const ss=saved.sessions[String(c.id)],grade=ss?.submitted?score(ss).value:null;let badge=b.querySelector('.chapter-score');if(grade===null)badge?.remove();else{if(!badge){badge=document.createElement('span');badge.className='chapter-score';b.querySelector('.chapter-card-meta').append(badge)}badge.textContent=String(grade);badge.setAttribute('aria-label','Nilai terakhir '+grade)}}return}
  $('#chapter-nav').innerHTML=COURSE.chapters.map(c=>{const s=saved.sessions[String(c.id)],grade=s?.submitted?score(s).value:null;return `<button class="chapter-button ${c.id===current?'active':''}" data-chapter="${c.id}" aria-pressed="${c.id===current}" aria-controls="chapter-title"><span class="chapter-mini">${chapterArt(c.id)}</span><span class="chapter-card-copy"><small>BAB ${String(c.id).padStart(2,'0')}</small><strong>${esc(c.title)}</strong><span class="chapter-card-meta">${c.sections.length} topik<i></i>${c.questions.length} soal${grade!==null?`<span class="chapter-score" aria-label="Nilai terakhir ${grade}">${grade}</span>`:''}</span></span></button>`}).join('');
 }
-function headingArt(){const n=current==='mixed'?8:current;const f=FORMULAS[n-1];$('#formula-icon').outerHTML=icon(CHAPTER_ICONS[n-1],'formula-icon');$('.formula-icon').id='formula-icon';$('#formula-label').textContent=f[0];$('#formula-text').textContent=f[1]}
+const HERO_CHIPS: Record<number | 'mixed', [string, string, string][]> = {
+ 1:[['BASE FORM','write','V1'],['PAST FORM','wrote','V2'],['PARTICIPLE','written','V3']],
+ 2:[['SIMPLE','she writes','NOW'],['PERFECT','she has written','HV3'],['CONTINUOUS','she is writing','BVING']],
+ 3:[['SIMPLE','she wrote','PAST'],['PERFECT','she had written','HV3'],['CONTINUOUS','she was writing','BVING']],
+ 4:[['FUTURE','she will go','WILL'],['PAST FUTURE','would go','WOULD'],['GOING TO','is going to go','GOTO']],
+ 5:[['ACTIVE','teacher explains','SVO'],['PASSIVE','is explained','BE+V3'],['VOICE','be + V3','PASSIVE']],
+ 6:[['ASK','do you think?','TANYA'],['GIVE','in my view','OPINI'],['DISAGREE','…but I disagree','SOPAN']],
+ 7:[['SHOULD','you should rest','V1'],['HOW ABOUT','taking a break?','V-ING'],['WHY DON’T','you try again?','V1']],
+ 8:[['OPENING','is a…','GC'],['DETAIL','has…','DESC'],['FACT','lives…','REPORT']],
+ 9:[['GOAL','make tea','01'],['MATERIALS','tea · water','02'],['STEPS','boil · pour','03']],
+ 10:[['PG','16 soal','01–16'],['PGK','16 soal','17–32'],['B/S','8 soal','33–40']],
+ mixed:[['SOAL','acak','10'],['BENTUK','PG·PGK·B/S','3'],['GROUP','9 kelompok','TOPIK']],
+};
+function headingArt(){const n=current==='mixed'?10:current;const f=FORMULAS[n-1];$('#formula-icon').outerHTML=icon(CHAPTER_ICONS[n-1],'formula-icon');$('.formula-icon').id='formula-icon';$('#formula-label').textContent=f[0];$('#formula-text').textContent=f[1]}
 function defaultOpen(){return false}
 function renderLessons(){
  observer?.disconnect();
@@ -70,14 +91,16 @@ function setChapter(value,scroll=true){
  ++searchEpoch;++quizEpoch;++navigationEpoch;current=next;clearTimeout(searchTimer);$<HTMLInputElement>('#search').value='';$<HTMLButtonElement>('#search-clear').hidden=true;$('#search-empty').hidden=true;$('#search-status').textContent='';save();renderChapters();
  const mixed=current==='mixed',c=chapter();
  $('#chapter-kicker').innerHTML=`<span class="hero-chapter-label">${mixed?'LATIHAN CAMPURAN':'BAB '+String(c.id).padStart(2,'0')}</span>ENGLISH / XI`;
- $('#chapter-title').textContent=mixed?'Mixed practice.':c.title+'.';$('#chapter-subtitle').textContent=mixed?'Grammar · tenses · passive · suggestions · procedure':c.subtitle;
- $('#example-english').textContent=mixed?'Konteks → pola → bentuk kata kerja':c.example;$('#example-english').lang=mixed?'id':'en';$('#example-meaning').textContent=mixed?'10 soal per set, dipilih dari bank 82 soal.':c.translation;
+ $('#chapter-title').textContent=mixed?'Mixed practice.':c.title+'.';$('#chapter-subtitle').textContent=mixed?'Opinion · suggestion · passive voice · report text':c.subtitle;
+ $('#example-english').textContent=mixed?'Opinion → suggestion → passive voice → report':c.example;$('#example-english').lang=mixed?'id':'en';$('#example-meaning').textContent=mixed?'10 soal acak dari seluruh materi latihan.':c.translation;
  $('#hero-question-count').textContent=mixed?'10 soal acak':c.questions.length+' soal latihan';$('#material-number').textContent=mixed?'—':String(c.id).padStart(2,'0');
  $('.hero-actions .button').hidden=mixed;
  $('.hero-actions .hero-practice').hidden=false;
  headingArt();
+ const chipSet=HERO_CHIPS[current==='mixed'?'mixed':current]||HERO_CHIPS[1];
+ $$('.hero-word').forEach((w,i)=>{const c=chipSet[i];if(!c)return;const sm=w.querySelector('small'),bb=w.querySelector('b'),sp=w.querySelector('span');if(sm)sm.textContent=c[0];if(bb)bb.textContent=c[1];if(sp)sp.textContent=c[2]});
  if(mixed){observer?.disconnect();$('.material-toolbar').hidden=true;$('.toc-panel').hidden=true;$('.lesson-options').hidden=true;$('#chapter-intro').hidden=true;$('#lesson-content').innerHTML='';$('.course-layout').classList.add('mixed-layout');$('#end-title').textContent='Latihan campuran';$<HTMLButtonElement>('#next-chapter').innerHTML='Kembali ke pilihan bab '+icon('arrow-up')}
- else{$('.material-toolbar').hidden=false;$('.course-layout').classList.remove('mixed-layout');renderLessons();$('#end-title').textContent=c.title;$<HTMLButtonElement>('#next-chapter').innerHTML=(c.id<8?'Bab berikutnya':'Latihan campuran')+' '+icon('arrow')}
+ else{$('.material-toolbar').hidden=false;$('.course-layout').classList.remove('mixed-layout');renderLessons();$('#end-title').textContent=c.title;$<HTMLButtonElement>('#next-chapter').innerHTML=(c.id<COURSE.chapters.length?'Bab berikutnya':'Latihan campuran')+' '+icon('arrow')}
  renderQuiz();
  if(scroll){$('.chapter-hero').scrollIntoView({behavior:reduced.matches?'instant':'smooth',block:'start'});$('#chapter-title').setAttribute('tabindex','-1');$('#chapter-title').focus({preventScroll:true})}
  motion($('.hero-copy'),[{opacity:0,transform:'translateY(14px)'},{opacity:1,transform:'translateY(0)'}],330);
@@ -102,17 +125,23 @@ async function searchTopics(){
 function updateDetailToggle(){const all=$$<HTMLDetailsElement>('.lesson-section:not([hidden]) .source-details'),opened=all.length&&all.every(d=>disclosureMotions.get(d)?.opening??d.open);$<HTMLButtonElement>('#detail-toggle').lastElementChild.textContent=opened?'Tutup semua detail':'Buka semua detail';$<HTMLButtonElement>('#detail-toggle').setAttribute('aria-expanded',String(!!opened));$<HTMLButtonElement>('#detail-toggle').hidden=all.length===0}
 function renderQuiz(){
  const s=session(),mixed=current==='mixed',count=mixed?10:chapter().questions.length;
- $('#quiz-title').textContent=mixed?'Latihan campuran.':'Latihan Bab '+String(current).padStart(2,'0')+'.';$('#quiz-count').textContent=count+' soal · A–D';
- if(!s){$('#quiz-workspace').innerHTML=`${mixed?'<p class="mixed-info">10 soal · 8 kelompok materi · urutan acak.</p>':''}<div class="quiz-start"><div class="quiz-emblem" aria-hidden="true">${chapterArt(8)}</div><div class="quiz-start-copy"><h3>${count} soal. Siap mencoba?</h3><p>Pilih jawaban → cek nilai → lihat pembahasan.</p><div class="quiz-start-tags"><span>${icon('shuffle')}Urutan acak</span><span>${icon('check-circle')}Pembahasan tersedia</span></div></div><button class="button primary" id="quiz-start">Mulai latihan ${icon('arrow')}</button></div>`;observeEntries();return}
+ $('#quiz-title').textContent=mixed?'Latihan campuran.':'Latihan Bab '+String(current).padStart(2,'0')+'.';const fmts=mixed?['PG','PGK']:[...new Set(chapter().questions.map(id=>{const t=Q.get(id).type||'single';return t==='multi'?'PGK':t==='tf'?'B/S':'PG'}))];$('#quiz-count').textContent=count+' soal · '+fmts.join(' · ');
+ if(!s){$('#quiz-workspace').innerHTML=`${mixed?'<p class="mixed-info">10 soal · 9 kelompok materi · urutan acak.</p>':''}<div class="quiz-start"><div class="quiz-emblem" aria-hidden="true">${chapterArt(mixed?10:Number(current))}</div><div class="quiz-start-copy"><h3>${count} soal. Siap mencoba?</h3><p>Pilih atau centang jawaban → cek nilai → lihat pembahasan.</p><div class="quiz-start-tags"><span>${icon('shuffle')}Urutan acak</span><span>${icon('check-circle')}Pembahasan tersedia</span></div></div><button class="button primary" id="quiz-start">Mulai latihan ${icon('arrow')}</button></div>`;observeEntries();return}
  const result=s.submitted?score(s):null;
  $('#quiz-workspace').innerHTML=`${result?resultHTML(result):''}<div class="quiz-session-header"><span>${s.submitted?'Jawaban sudah dikunci':'Pilih satu jawaban untuk setiap soal.'}</span><button data-restart>${icon('shuffle')}Acak ulang</button></div><div class="question-list">${s.order.map((id,i)=>questionHTML(Q.get(id),i,s)).join('')}</div>${s.submitted?`<div class="result-end"><a href="#quiz-result">Kembali ke hasil ↑</a><button class="button secondary" data-restart>${icon('shuffle')}Acak & coba lagi</button></div>`:`<div class="quiz-submit-bar"><div><p class="quiz-progress-copy" id="quiz-progress-text"></p><div class="quiz-progress-track" aria-hidden="true"><span></span></div></div><button class="button primary" id="quiz-submit">Cek jawaban ${icon('check-circle')}</button></div>`}`;
  if(!s.submitted)updateQuizProgress();observeEntries();
 }
 function resultHTML(r){return `<div class="quiz-result" id="quiz-result"><div class="score-ring" style="--score:${r.value}" aria-label="Nilai ${r.value} dari 100"><div><strong>${r.value}</strong><small>DARI 100</small></div></div><div class="result-copy"><span class="eyebrow">HASIL LATIHAN</span><h3 tabindex="-1" id="result-title">${r.correct} dari ${r.total} benar.</h3><div class="score-breakdown"><span>${r.correct} benar</span><span>${r.wrong} salah</span><span>${r.blank} kosong</span></div><p>Buka pembahasan jika diperlukan.</p><span class="sr-only" role="status">Nilai ${r.value} dari 100. ${r.correct} benar, ${r.wrong} salah, ${r.blank} kosong.</span></div><button class="button secondary" data-restart>${icon('shuffle')}Coba lagi</button></div>`}
 function questionHTML(q: Question,i: number,s: QuizSession){
- const answer=s.answers[q.id],submitted=s.submitted,isRight=answer===q.correct,blank=!answer;
- const feedback=submitted?`<div class="question-feedback"><span class="feedback-label ${blank?'blank':isRight?'':'wrong'}">${icon(isRight?'check-circle':blank?'quiz':'close')}${blank?'Tidak dijawab':isRight?'Jawaban benar':'Jawaban kurang tepat'}</span>${!isRight?`<p class="correct-answer">Jawaban benar: <strong>${'ABCD'[s.options[q.id].indexOf(q.correct)]} · ${esc(q.options.find(o=>o.id===q.correct).text)}</strong></p>`:''}<details class="feedback-detail detail-block"><summary>Lihat pembahasan ${icon('arrow-down')}</summary><div class="detail-content explanation prose">${q.explanation}</div></details></div>`:'';
- return `<article class="question-card" id="q-${q.id}" data-question="${q.id}"><div class="question-top"><span class="question-counter"><b>${String(i+1).padStart(2,'0')}</b> / ${s.order.length}</span><span class="question-id">${q.id}</span></div><div class="question-prompt prose" id="prompt-${q.id}">${q.prompt}</div><fieldset class="question-options" aria-labelledby="prompt-${q.id}" ${submitted?'disabled':''}><legend>Pilihan jawaban soal ${i+1}</legend>${s.options[q.id].map((oid,j)=>{const o=q.options.find(v=>v.id===oid),correct=submitted&&oid===q.correct,wrong=submitted&&answer===oid&&!isRight;return `<label class="option ${correct?'is-correct':wrong?'is-wrong':''}"><input type="radio" name="answer-${q.id}" value="${oid}" data-answer="${q.id}" ${answer===oid?'checked':''}><span class="option-letter" aria-hidden="true">${'ABCD'[j]}</span><span class="option-text">${o.html}</span>${correct||wrong?`<span class="option-status" aria-label="${correct?'Jawaban benar':'Jawaban salah'}">${icon(correct?'check':'close')}</span>`:''}</label>`}).join('')}</fieldset>${feedback}</article>`;
+ const answer=s.answers[q.id],submitted=s.submitted,isRight=isRightQ(q,answer),blank=!answer;
+ const type=q.type||'single',correctIds=type==='multi'?q.correct.split(','):[q.correct];
+ const letter=(oid:string)=>{const j=s.options[q.id].indexOf(oid);return type==='tf'?'BS'[j]||'?':'ABCDE'[j]||'?'};
+ const correctLabel=correctIds.map(letter).join(', ');
+ const correctText=correctIds.map(cid=>q.options.find(o=>o.id===cid)?.text||'').join(' + ');
+ const feedback=submitted?`<div class="question-feedback"><span class="feedback-label ${blank?'blank':isRight?'':'wrong'}">${icon(isRight?'check-circle':blank?'quiz':'close')}${blank?'Tidak dijawab':isRight?'Jawaban benar':'Jawaban kurang tepat'}</span>${!isRight?`<p class="correct-answer">Jawaban benar: <strong>${correctLabel} · ${esc(correctText)}</strong></p>`:''}<details class="feedback-detail detail-block"><summary>Lihat pembahasan ${icon('arrow-down')}</summary><div class="detail-content explanation prose">${q.explanation}</div></details></div>`:'';
+ const legend=type==='multi'?'Pilih semua jawaban yang benar':type==='tf'?'Benar atau salah':'Pilih satu jawaban';
+ const badge=type==='multi'?'PGK':type==='tf'?'B/S':'PG';
+ return `<article class="question-card type-${type}" id="q-${q.id}" data-question="${q.id}"><div class="question-top"><span class="question-counter"><b>${String(i+1).padStart(2,'0')}</b> / ${s.order.length}</span><span class="question-badge badge-${type}">${badge}</span></div><div class="question-prompt prose" id="prompt-${q.id}">${q.prompt}</div>${type==='multi'?'<p class="multi-hint">Centang semua jawaban yang benar — bisa lebih dari satu.</p>':type==='tf'?'<p class="multi-hint tf-hint">Pilih Benar atau Salah.</p>':''}<fieldset class="question-options" aria-labelledby="prompt-${q.id}" ${submitted?'disabled':''}><legend>${legend}</legend>${s.options[q.id].map((oid,j)=>{const o=q.options.find(v=>v.id===oid),isC=submitted&&correctIds.includes(oid),isW=submitted&&!!answer&&answer.split(',').includes(oid)&&!correctIds.includes(oid),checked=type==='multi'?(answer||'').split(',').includes(oid):answer===oid;return `<label class="option ${isC?'is-correct':isW?'is-wrong':''}"><input type="${type==='multi'?'checkbox':'radio'}" name="answer-${q.id}" value="${oid}" data-answer="${q.id}" ${checked?'checked':''}><span class="option-letter" aria-hidden="true">${letter(oid)}</span><span class="option-text">${o.html}</span>${isC||isW?`<span class="option-status" aria-label="${isC?'Jawaban benar':'Jawaban salah'}">${icon(isC?'check':'close')}</span>`:''}</label>`}).join('')}</fieldset>${feedback}</article>`;
 }
 function updateQuizProgress(){const s=session();if(!s||s.submitted)return;const n=s.order.filter(id=>s.answers[id]).length;$('#quiz-progress-text').innerHTML=`<strong>${n} / ${s.order.length}</strong> soal terjawab`;$('.quiz-progress-track>span').style.width=(n/s.order.length*100)+'%'}
 function askConfirm(title,text,accept='Lanjutkan',cancel='Batal'){
@@ -132,16 +161,17 @@ async function restartQuiz(){
 }
 $('#chapter-nav').addEventListener('click',e=>{const b=(e.target as HTMLElement).closest<HTMLElement>('button[data-chapter]');if(b)navigateChapter(b.dataset.chapter)});
 $<HTMLButtonElement>('#mixed-launch').onclick=()=>navigateChapter('mixed');$<HTMLButtonElement>('#next-chapter').onclick=()=>{if(current==='mixed'){$('#pilihan-bab').scrollIntoView({behavior:reduced.matches?'instant':'smooth'});return}navigateChapter(current<8?current+1:'mixed')};
+document.addEventListener('click',e=>{const a=(e.target as HTMLElement).closest<HTMLElement>('.toc-arrow');if(!a)return;const nav=a.parentElement?.querySelector('#toc');nav?.scrollBy({left:a.classList.contains('next')?240:-240,behavior:'smooth'})});
 $<HTMLInputElement>('#search').addEventListener('input',()=>{clearTimeout(searchTimer);searchTimer=setTimeout(searchTopics,100)});function clearSearch(){clearTimeout(searchTimer);$<HTMLInputElement>('#search').value='';searchTopics();$<HTMLInputElement>('#search').focus()}$<HTMLButtonElement>('#search-clear').onclick=clearSearch;$<HTMLButtonElement>('#search-reset').onclick=clearSearch;
 $<HTMLButtonElement>('#detail-toggle').onclick=()=>{const ds=$$<HTMLDetailsElement>('.lesson-section:not([hidden]) .source-details'),open=!ds.every(d=>disclosureMotions.get(d)?.opening??d.open);ds.forEach(d=>animateDisclosure(d,open));updateDetailToggle()};$('#lesson-content').addEventListener('toggle',updateDetailToggle,true);
-$('#quiz-workspace').addEventListener('change',e=>{const input=(e.target as HTMLElement).closest<HTMLInputElement>('input[data-answer]'),s=session();if(!input||!s||s.submitted)return;const id=input.dataset.answer;if(s.order.includes(id)&&s.options[id].includes(input.value)){s.answers[id]=input.value;save();updateQuizProgress()}});
+$('#quiz-workspace').addEventListener('change',e=>{const input=(e.target as HTMLElement).closest<HTMLInputElement>('input[data-answer]'),s=session();if(!input||!s||s.submitted)return;const id=input.dataset.answer;if(!id||!s.order.includes(id)||!s.options[id].includes(input.value))return;const q=Q.get(id);if((q.type||'single')==='multi'){const fs=input.closest('fieldset');const sel=fs?[...fs.querySelectorAll<HTMLInputElement>('input[data-answer]:checked')].map(x=>x.value).sort():[];s.answers[id]=sel.join(',')}else s.answers[id]=input.value;save();updateQuizProgress()});
 $('#quiz-workspace').addEventListener('click',e=>{if((e.target as HTMLElement).closest<HTMLElement>('#quiz-start')){startQuizFlow()}else if((e.target as HTMLElement).closest<HTMLElement>('#quiz-submit'))submitQuiz();else if((e.target as HTMLElement).closest<HTMLElement>('[data-restart]'))restartQuiz()});
 $<HTMLButtonElement>('#confirm-accept').onclick=()=>resolveConfirm(true);$<HTMLButtonElement>('#confirm-cancel').onclick=()=>resolveConfirm(false);$<HTMLDialogElement>('#confirm-dialog').addEventListener('cancel',e=>{e.preventDefault();resolveConfirm(false)});$<HTMLDialogElement>('#confirm-dialog').addEventListener('click',e=>{if(e.target===$<HTMLDialogElement>('#confirm-dialog')){const r=(e.target as HTMLElement).getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)resolveConfirm(false)}});
 $<HTMLButtonElement>('#back-top').onclick=()=>$('#pilihan-bab').scrollIntoView({behavior:reduced.matches?'instant':'smooth'});
 document.addEventListener('keydown',e=>{if(e.key==='/'&&!e.ctrlKey&&!e.metaKey&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)&&!$<HTMLDialogElement>('#confirm-dialog').open&&current!=='mixed'){e.preventDefault();$<HTMLInputElement>('#search').focus();$('#materi').scrollIntoView({behavior:reduced.matches?'instant':'smooth',block:'start'})}if(e.key==='Escape'&&document.activeElement===$<HTMLInputElement>('#search')&&!$<HTMLDialogElement>('#confirm-dialog').open)clearSearch()});
 const entered=new WeakSet(),watched=new Set<Element>();
 const entranceObserver=new IntersectionObserver(entries=>{let i=0;for(const e of entries)if(e.isIntersecting){entranceObserver.unobserve(e.target);watched.delete(e.target);if(!e.target.isConnected||!e.target.getClientRects().length)continue;entered.add(e.target);e.target.classList.add('seen');motion(e.target,[{opacity:0,transform:'translateY(19px) scale(.985)'},{opacity:1,transform:'translateY(0) scale(1)'}],480,Math.min(i++*45,180));if(e.target.matches('.visual-lab'))e.target.querySelectorAll('.sentence-piece').forEach((piece,j)=>motion(piece,[{opacity:0,transform:'translateY(9px) scale(.96)'},{opacity:1,transform:'translateY(0) scale(1)'}],420,j*45))}},{threshold:.06,rootMargin:'0px 0px -15px 0px'});
-function observeEntries(){for(const n of watched)if(!n.isConnected){entranceObserver.unobserve(n);watched.delete(n)}if(reduced.matches)return;for(const n of $$('.visual-lab,.question-card,.quiz-start,.quiz-result,.chapter-button'))if(!entered.has(n)&&!watched.has(n)){watched.add(n);entranceObserver.observe(n)}}
+function observeEntries(){for(const n of watched)if(!n.isConnected){entranceObserver.unobserve(n);watched.delete(n)}if(reduced.matches)return;for(const n of $$('.visual-lab,.question-card,.quiz-start,.quiz-result,.chapter-button,.lesson-section .section-heading,.chapter-end,.mixed-info'))if(!entered.has(n)&&!watched.has(n)){watched.add(n);entranceObserver.observe(n)}}
 const exits=new WeakMap();
 function exitElement(el){
  if(!el||reduced.matches||!el.getClientRects().length)return{finished:Promise.resolve(),animation:null};
